@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi des Chariots - Sage Automotive Interiors</title>
+    <!-- Importation de Bootstrap -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Style général de la page */
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        /* Carte représentant une zone */
+        .card-telemetry {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            background: white;
+            margin-bottom: 25px;
+            transition: transform 0.2s;
+        }
+
+        /* Animation au survol */
+        .card-telemetry:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Style des badges */
+        .badge-status {
+            font-size: 1.1rem;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 700;
+        }
+
+        /* Titre d'une information */
+        .metric-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #8a8f9d;
+            font-weight: 600;
+        }
+
+        /* Valeur d'une information */
+        .metric-value {
+            font-size: 16px;
+            color: #2c3e50;
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- container principal -->
+    <div class="container py-5">
+
+        <!-- titre du tableau de bord -->
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <div>
+                <h1 class="fw-bold text-dark m-0">
+                    Suivi Logistique des Chariots
+                </h1>
+
+                <p class="text-muted m-0">
+                    Système de Monitoring IoT de l'atelier
+                </p>
+            </div>
+
+            <!-- indicateur de connexion -->
+            <span class="badge bg-primary px-3 py-2 rounded-pill">
+                Statut: En Ligne
+            </span>
+        </div>
+
+        <!-- zone qui comporte tous les cartes -->
+        <div class="row" id="dashboard-grid">
+            {% for zone_name, zone_data in zones.items() %}
+            <div class="col-12">
+                <!-- carte d'une zone -->
+                <div class="card card-telemetry p-4">
+                    <!-- titre de la carte -->
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+                        <!-- nom de la zone -->
+                        <div>
+                            <span class="metric-title">Localisation Actuelle</span>
+                            <h2 class="fw-bold m-0 text-primary">
+                                {{ zone_name }}
+                            </h2>
+                        </div>
+                        <!-- info sur le chariot -->
+                        <div class="d-flex align-items-center gap-3">
+                            <!-- verifier si un chariot est présent -->
+                            {% if zone_data.has_chariot %}
+                            <!-- afficher le nom du chariot -->
+                            <span class="badge bg-light text-primary border border-primary badge-status">
+                                {{ zone_data.details.name }}
+                            </span>
+                            <!-- boutton d'pour ovrir la fenetre popup de modification -->
+                            <button type="button"
+                                    class="btn btn-outline-secondary rounded-circle"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editModal-{{ zone_data.details.id }}">
+                                ✏️
+                            </button>
+                            {% else %}
+                            <!-- widget libre -->
+                            <span class="badge bg-light text-success border border-success badge-status">
+                                LIBRE
+                            </span>
+
+                            {% endif %}
+                        </div>
+                    </div>
+                    <!-- info détaillées du chariot -->
+                    <div class="row g-3">
+                        <div class="col-6 col-sm-3">
+                            <span class="metric-title">Tissu</span>
+                            <span class="metric-value">
+                                {% if zone_data.has_chariot %}
+                                    {{ zone_data.details.fabric }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <span class="metric-title">Design / Motif</span>
+                            <span class="metric-value">
+                                {% if zone_data.has_chariot %}
+                                    {{ zone_data.details.design }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <span class="metric-title">Métrage</span>
+                            <span class="metric-value">
+                                {% if zone_data.has_chariot %}
+                                    {{ zone_data.details.length }} m
+                                {% else %}
+                                    0 m
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <span class="metric-title">ID Lot</span>
+                            <span class="metric-value">
+                                {% if zone_data.has_chariot %}
+                                    #{{ zone_data.details.lot }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </span>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- fenetre permettant de modifier les données -->
+            {% if zone_data.has_chariot %}
+            <div class="modal fade" id="editModal-{{ zone_data.details.id }}" tabindex="-1">
+                <!-- fenetre popup centrée -->
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <!-- form envoyé à Flask -->
+                        <form action="/update/{{ zone_data.details.id }}" method="POST">
+                            <!-- titre du formulaire -->
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    Modifier : {{ zone_data.details.name }}
+                                </h5>
+                            </div>
+                            <!-- champs de saisie -->
+                            <div class="modal-body">
+                                <input type="text"
+                                       name="fabric"
+                                       value="{{ zone_data.details.fabric }}">
+                                <input type="text"
+                                       name="design"
+                                       value="{{ zone_data.details.design }}">
+                                <input type="text"
+                                       name="length"
+                                       value="{{ zone_data.details.length }}">
+                                <input type="text"
+                                       name="lot"
+                                       value="{{ zone_data.details.lot }}">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button"
+                                        class="btn btn-secondary"
+                                        data-bs-dismiss="modal">
+                                    Annuler
+                                </button>
+
+                                <button type="submit"
+                                        class="btn btn-primary">
+                                    Enregistrer
+                                </button>
+                            </div>
+
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            {% endif %}
+            {% endfor %}
+
+        </div>
+    </div>
+
+    <!-- importer JavaScript Bootstrap -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+
+        // refresh automatique chaque 3 secondes
+        setInterval(function() {
+
+            // verifier si une fenêtre de modification est ouverte
+            const activeModal = document.querySelector('.modal.show');
+
+            // si l'utilisateur modifie des données,
+            // on bloque le refreshing automatique
+            if (activeModal) {
+                return;
+            }
+
+            // recuperer la version mise à jour de la page
+            fetch('/')
+
+                .then(response => response.text())
+
+                .then(html => {
+
+                    // conversion du HTML reçu en document
+                    const parser = new DOMParser();
+                    const freshDoc = parser.parseFromString(html, 'text/html');
+
+                    // recuperer uniquement la partie dashboard
+                    const incomingGrid =
+                        freshDoc.getElementById('dashboard-grid').innerHTML;
+
+                    // remplace l'ancien contenu par le nouveau
+                    document.getElementById('dashboard-grid').innerHTML =
+                        incomingGrid;
+                })
+
+                .catch(err => console.warn(err));
+
+        }, 3000);
+
+    </script>
+
+</body>
+</html>
